@@ -1,19 +1,41 @@
 package providers
 
-import "open-payment-gateway/types"
+import (
+	"context"
+	"errors"
+	"open-payment-gateway/types"
+
+	"github.com/ethereum/go-ethereum/ethclient"
+)
 
 type EvmProvider struct {
-	PrividerUrl string
+	client *ethclient.Client
 }
 
 func (p EvmProvider) GetLatestBlockNumber() (int64, error) {
-	return 100, nil
+	context := context.Background()
+	n, err := p.client.BlockNumber(context)
+	if err != nil {
+		return 0, err
+	}
+	if n < 0 {
+		return 0, errors.New("node is not synced")
+	}
+
+	return int64(n), nil
 }
 
-func (p EvmProvider) GetBlockByNumber(int64) (types.Block, error) {
-	return types.Block{}, nil
+func (p EvmProvider) GetBlockByNumber(n int64) (types.Block, error) {
+	return types.Block{BlockNumber: n, BlockHash: "dfkjnskfns", PreviousBlockHash: "dfkjndskfndsjn"}, nil
 }
 
-func NewEvmProvider(url string) EvmProvider {
-	return EvmProvider{PrividerUrl: url}
+func NewEvmProvider(url string) (EvmProvider, error) {
+	context := context.Background()
+	client, err := ethclient.DialContext(context, url)
+
+	if err != nil {
+		return EvmProvider{}, err
+	}
+
+	return EvmProvider{client: client}, nil
 }
