@@ -5,11 +5,12 @@ import (
 	"open-payment-gateway/db"
 	"open-payment-gateway/providers"
 	"open-payment-gateway/types"
+	"strings"
 )
 
 type EvmListener struct {
-	network             types.Network
-	currency            types.Currency
+	network             string
+	currency            string
 	chainId             int64
 	startingBlockNumber int64
 	db                  db.DB
@@ -45,18 +46,17 @@ func (l EvmListener) Start() {
 			processingBlockNumber := latestProcessedBlockNumber + 1
 			fmt.Printf("Processing Block Number is %d\n", processingBlockNumber)
 			processingBlock, err := l.provider.GetBlockByNumber(processingBlockNumber)
-			fmt.Printf("Processing Block is %+v\n", processingBlock)
 
 			if err != nil {
-				panic("Could not get the block data from provider")
+				panic("Could not get block data from provider")
 			}
 
-			if err := ProcessBlock(processingBlock); err != nil {
+			if err := ProcessTransactions(l.db, processingBlock); err != nil {
 				panic("Could not process block")
 			}
 
 			if err := l.db.SaveBlock(&processingBlock); err != nil {
-				panic("Could not save the processed block into the database")
+				panic("Could not save processed block into the database")
 			}
 
 		} else {
@@ -67,10 +67,80 @@ func (l EvmListener) Start() {
 	}
 }
 
-func NewEvmListener(n types.Network, c types.Currency, cid int64, sbn int64, db db.DB, p providers.EvmProvider) *EvmListener {
+func NewEvmListener(n string, c string, cid int64, sbn int64, db db.DB, p providers.EvmProvider) *EvmListener {
 	return &EvmListener{network: n, currency: c, chainId: cid, startingBlockNumber: sbn, db: db, provider: p}
 }
 
-func ProcessBlock(b types.Block) error {
+func ProcessTransactions(d db.DB, b types.Block) error {
+	transactions := b.Transactions
+	fmt.Println("Processing Block", b.BlockNumber)
+
+	for _, t := range transactions {
+		err := ProcessTransaction(d, t)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+func ProcessTransaction(d db.DB, tx types.Transaction) error {
+	if tx.To == "" {
+		return nil
+	}
+
+	txType, err := GetTransactionType(d, tx)
+	if err != nil {
+		return err
+	}
+
+	if txType != "" {
+		fmt.Printf("Received Transaction of type %s from %s to %s with the value of %s Ether\n", txType, tx.From, tx.To, tx.Value)
+	}
+
+	return nil
+}
+
+func GetTransactionType(d db.DB, tx types.Transaction) (string, error) {
+	isDeposit, err := IsDepositTransaction(d, tx.From, tx.To)
+	if err != nil {
+		return "", err
+	}
+	isWithdrawal, err := IsWithdrawalTransaction(d, tx.From, tx.To)
+	if err != nil {
+		return "", err
+	}
+
+	if isDeposit && isWithdrawal {
+		if tx.From == tx.To {
+			return "self", nil
+		}
+
+		return "internal", nil
+	}
+	if isDeposit {
+		return "deposit", nil
+	}
+	if isWithdrawal {
+		return "withdrawal", nil
+	}
+
+	return "", nil
+}
+
+func IsDepositTransaction(d db.DB, from string, to string) (bool, error) {
+	exists, err := d.AddressExists(strings.ToLower(to))
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
+func IsWithdrawalTransaction(d db.DB, from string, to string) (bool, error) {
+	exists, err := d.AddressExists(strings.ToLower(from))
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
 }

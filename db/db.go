@@ -2,13 +2,14 @@ package db
 
 import (
 	"open-payment-gateway/types"
+	"strings"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 type DB interface {
-	AddressExists(a types.Address) (bool, error)
+	AddressExists(a string) (bool, error)
 	GetLatestProcessedBlockNumber() (int64, error)
 	SaveBlock(b *types.Block) error
 }
@@ -29,8 +30,11 @@ func NewSQLiteDBClient(p string) (*SQLiteDB, error) {
 	return &SQLiteDB{client: db}, nil
 }
 
-func (db *SQLiteDB) AddressExists(a types.Address) (bool, error) {
-	return true, nil
+func (db *SQLiteDB) AddressExists(a string) (bool, error) {
+	if strings.EqualFold(a, "0x6eb94F4C9CeDF3637f9F3ec21e91231fB8482278") {
+		return true, nil
+	}
+	return false, nil
 }
 
 func (db *SQLiteDB) GetLatestProcessedBlockNumber() (int64, error) {

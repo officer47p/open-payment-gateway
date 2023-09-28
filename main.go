@@ -5,7 +5,6 @@ import (
 	"open-payment-gateway/db"
 	"open-payment-gateway/listeners"
 	"open-payment-gateway/providers"
-	"open-payment-gateway/types"
 	"os"
 	"strconv"
 
@@ -41,8 +40,8 @@ func main() {
 	}
 
 	evmListener := listeners.NewEvmListener(
-		types.Network(os.Getenv("NETWORK_NAME")),
-		types.Currency(os.Getenv("NETWORK_CURRENCY")),
+		os.Getenv("NETWORK_NAME"),
+		os.Getenv("NETWORK_CURRENCY"),
 		chainId,
 		startingBlockNumber,
 		database,

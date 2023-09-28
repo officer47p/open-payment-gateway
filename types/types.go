@@ -1,12 +1,8 @@
 package types
 
-import "gorm.io/gorm"
-
-type Address string
-
-type Network string
-
-type Currency string
+import (
+	"gorm.io/gorm"
+)
 
 type Block struct {
 	gorm.Model
@@ -18,8 +14,10 @@ type Block struct {
 
 type Transaction struct {
 	gorm.Model
-	Txhash string
-	Value  int64
-	From   Address
-	To     Address
+	BlockNumber int64
+	BlockHash   string
+	Txhash      string
+	Value       string
+	From        string
+	To          string
 }
