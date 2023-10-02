@@ -5,10 +5,13 @@ import (
 	"open-payment-gateway/db"
 	"open-payment-gateway/listeners"
 	"open-payment-gateway/providers"
+	"open-payment-gateway/types"
 	"os"
 	"strconv"
 
 	"github.com/joho/godotenv"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -18,10 +21,12 @@ func main() {
 		log.Fatalf("Error loading .env file: %s", err)
 	}
 
-	database, err := db.NewSQLiteDBClient(os.Getenv("DATABASE_URL"))
+	dbURL := db.CreateDBUrl(os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_URL"), os.Getenv("DB_PORT"), os.Getenv("DB_NAME"))
+	postgresClient, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{})
 	if err != nil {
-		panic("Could not connect to the SQLite database")
+		panic("Could not connect to the Postgres database")
 	}
+	postgresClient.AutoMigrate(&types.Block{}, &types.Transaction{})
 
 	provider, err := providers.NewEvmProvider(os.Getenv("PROVIDER_URL"))
 	if err != nil {
@@ -39,12 +44,16 @@ func main() {
 		panic("Could not parse the starting block number")
 	}
 
+	addressStore := db.NewAddressStore(postgresClient)
+	blockStore := db.NewBlockStore(postgresClient)
+
 	evmListener := listeners.NewEvmListener(
 		os.Getenv("NETWORK_NAME"),
 		os.Getenv("NETWORK_CURRENCY"),
 		chainId,
 		startingBlockNumber,
-		database,
+		addressStore,
+		blockStore,
 		provider,
 	)
 

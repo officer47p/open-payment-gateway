@@ -13,14 +13,15 @@ type EvmListener struct {
 	currency            string
 	chainId             int64
 	startingBlockNumber int64
-	db                  db.DB
+	addressStore        db.AddressStore
+	blockStore          db.BlockStore
 	provider            providers.EvmProvider
 }
 
 func (l EvmListener) Start() {
 
 	for {
-		latestProcessedBlockNumber, err := l.db.GetLatestProcessedBlockNumber()
+		latestProcessedBlockNumber, err := l.blockStore.GetLatestProcessedBlockNumber()
 		if err != nil {
 			panic("Could not get the latest processed block number from database")
 		}
@@ -51,11 +52,11 @@ func (l EvmListener) Start() {
 				panic("Could not get block data from provider")
 			}
 
-			if err := ProcessTransactions(l.db, processingBlock); err != nil {
+			if err := ProcessTransactions(l.addressStore, processingBlock); err != nil {
 				panic("Could not process block")
 			}
 
-			if err := l.db.SaveBlock(&processingBlock); err != nil {
+			if err := l.blockStore.SaveBlock(&processingBlock); err != nil {
 				panic("Could not save processed block into the database")
 			}
 
@@ -67,16 +68,31 @@ func (l EvmListener) Start() {
 	}
 }
 
-func NewEvmListener(n string, c string, cid int64, sbn int64, db db.DB, p providers.EvmProvider) *EvmListener {
-	return &EvmListener{network: n, currency: c, chainId: cid, startingBlockNumber: sbn, db: db, provider: p}
+func NewEvmListener(network string,
+	currency string,
+	chainId int64,
+	startingBlockNumber int64,
+	addressStore db.AddressStore,
+	blockStore db.BlockStore,
+	provider providers.EvmProvider,
+) *EvmListener {
+	return &EvmListener{
+		network:             network,
+		currency:            currency,
+		chainId:             chainId,
+		startingBlockNumber: startingBlockNumber,
+		addressStore:        addressStore,
+		blockStore:          blockStore,
+		provider:            provider,
+	}
 }
 
-func ProcessTransactions(d db.DB, b types.Block) error {
+func ProcessTransactions(addressStore db.AddressStore, b types.Block) error {
 	transactions := b.Transactions
 	fmt.Println("Processing Block", b.BlockNumber)
 
 	for _, t := range transactions {
-		err := ProcessTransaction(d, t)
+		err := ProcessTransaction(addressStore, t)
 		if err != nil {
 			return err
 		}
@@ -85,12 +101,12 @@ func ProcessTransactions(d db.DB, b types.Block) error {
 	return nil
 }
 
-func ProcessTransaction(d db.DB, tx types.Transaction) error {
+func ProcessTransaction(addressStore db.AddressStore, tx types.Transaction) error {
 	if tx.To == "" {
 		return nil
 	}
 
-	txType, err := GetTransactionType(d, tx)
+	txType, err := GetTransactionType(addressStore, tx)
 	if err != nil {
 		return err
 	}
@@ -102,12 +118,12 @@ func ProcessTransaction(d db.DB, tx types.Transaction) error {
 	return nil
 }
 
-func GetTransactionType(d db.DB, tx types.Transaction) (string, error) {
-	isDeposit, err := IsDepositTransaction(d, tx.From, tx.To)
+func GetTransactionType(addressStore db.AddressStore, tx types.Transaction) (string, error) {
+	isDeposit, err := IsDepositTransaction(addressStore, tx.From, tx.To)
 	if err != nil {
 		return "", err
 	}
-	isWithdrawal, err := IsWithdrawalTransaction(d, tx.From, tx.To)
+	isWithdrawal, err := IsWithdrawalTransaction(addressStore, tx.From, tx.To)
 	if err != nil {
 		return "", err
 	}
@@ -129,16 +145,16 @@ func GetTransactionType(d db.DB, tx types.Transaction) (string, error) {
 	return "", nil
 }
 
-func IsDepositTransaction(d db.DB, from string, to string) (bool, error) {
-	exists, err := d.AddressExists(strings.ToLower(to))
+func IsDepositTransaction(addressStore db.AddressStore, from string, to string) (bool, error) {
+	exists, err := addressStore.AddressExists(strings.ToLower(to))
 	if err != nil {
 		return false, err
 	}
 	return exists, nil
 }
 
-func IsWithdrawalTransaction(d db.DB, from string, to string) (bool, error) {
-	exists, err := d.AddressExists(strings.ToLower(from))
+func IsWithdrawalTransaction(addressStore db.AddressStore, from string, to string) (bool, error) {
+	exists, err := addressStore.AddressExists(strings.ToLower(from))
 	if err != nil {
 		return false, err
 	}
