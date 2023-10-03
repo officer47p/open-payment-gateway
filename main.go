@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"open-payment-gateway/db"
+	"open-payment-gateway/internal_notification"
 	"open-payment-gateway/listeners"
 	"open-payment-gateway/providers"
 	"open-payment-gateway/types"
@@ -45,6 +46,9 @@ func main() {
 	blockStore := db.NewBlockStore(dbClient)
 	transactionStore := db.NewTransactionStore(dbClient)
 
+	// Internal Service Communication
+	internalNotification := internal_notification.NewNatsInternalNotification(transactionStore)
+
 	// Listener control channels
 	quitch := make(chan struct{})
 	wg := &sync.WaitGroup{}
@@ -59,6 +63,7 @@ func main() {
 		addressStore,
 		blockStore,
 		transactionStore,
+		internalNotification,
 		provider,
 	)
 

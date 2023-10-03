@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"open-payment-gateway/db"
+	"open-payment-gateway/internal_notification"
 	"open-payment-gateway/providers"
 	"open-payment-gateway/types"
 	"open-payment-gateway/utils"
@@ -20,6 +21,7 @@ type EvmListener struct {
 	addressStore        db.AddressStore
 	blockStore          db.BlockStore
 	transactionStore    db.TransactionStore
+	notification        internal_notification.InternalNotification
 	provider            providers.EvmProvider
 }
 
@@ -31,6 +33,7 @@ func NewEvmListener(
 	addressStore db.AddressStore,
 	blockStore db.BlockStore,
 	transactionStore db.TransactionStore,
+	notification internal_notification.InternalNotification,
 	provider providers.EvmProvider,
 ) *EvmListener {
 	return &EvmListener{
@@ -41,6 +44,7 @@ func NewEvmListener(
 		addressStore:        addressStore,
 		blockStore:          blockStore,
 		transactionStore:    transactionStore,
+		notification:        notification,
 		provider:            provider,
 	}
 }
@@ -87,7 +91,8 @@ BlockIterator:
 					panic("Could not get block data from provider")
 				}
 
-				if err := ProcessTransactions(l.addressStore, l.transactionStore, processingBlock); err != nil {
+				// TODO: Wrap ProcessBlock and SaveBlock in a database transaction
+				if err := ProcessBlock(l.notification, l.addressStore, l.transactionStore, processingBlock); err != nil {
 					panic("Could not process block")
 				}
 
@@ -113,12 +118,12 @@ func (l *EvmListener) Stop() bool {
 	return true
 }
 
-func ProcessTransactions(addressStore db.AddressStore, transactionStore db.TransactionStore, b types.Block) error {
+func ProcessBlock(notification internal_notification.InternalNotification, addressStore db.AddressStore, transactionStore db.TransactionStore, b types.Block) error {
 	transactions := b.Transactions
 	fmt.Println("Processing Block", b.BlockNumber)
 
 	for _, t := range transactions {
-		err := ProcessTransaction(addressStore, transactionStore, t)
+		err := ProcessTransaction(notification, addressStore, transactionStore, t)
 		if err != nil {
 			return err
 		}
@@ -127,7 +132,7 @@ func ProcessTransactions(addressStore db.AddressStore, transactionStore db.Trans
 	return nil
 }
 
-func ProcessTransaction(addressStore db.AddressStore, transactionStore db.TransactionStore, tx types.Transaction) error {
+func ProcessTransaction(notification internal_notification.InternalNotification, addressStore db.AddressStore, transactionStore db.TransactionStore, tx types.Transaction) error {
 	if tx.To == "" {
 		return nil
 	}
@@ -149,7 +154,13 @@ func ProcessTransaction(addressStore db.AddressStore, transactionStore db.Transa
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Received Transaction of type %s from %s to %s with the value of %s Ether\n", txType, tx.From, tx.To, tx.Value)
+
+		// NOT IMPLEMENTED
+		err = notification.Notify("TRANSACTION_DETECTED", fmt.Sprintf("Received Transaction of type %s from %s to %s with the value of %s Ether\n", txType, tx.From, tx.To, tx.Value))
+		if err != nil {
+			panic("NOT IMPLEMENTED")
+		}
+
 	}
 
 	return nil
