@@ -1,7 +1,8 @@
 package db
 
 import (
-	"strings"
+	"log"
+	"open-payment-gateway/types"
 
 	"gorm.io/gorm"
 )
@@ -19,8 +20,13 @@ func NewAddressStore(c *gorm.DB) *SQLAddressStore {
 }
 
 func (s *SQLAddressStore) AddressExists(a string) (bool, error) {
-	if strings.EqualFold(a, "0x6eb94F4C9CeDF3637f9F3ec21e91231fB8482278") {
-		return true, nil
+	var foundAddress string
+	tx := s.client.Model(&types.Address{}).Select("address").Where("address ILIKE ?", a).Find(&foundAddress)
+	if tx.Error != nil {
+		log.Fatal(tx.Error)
 	}
-	return false, nil
+	if foundAddress == "" {
+		return false, nil
+	}
+	return true, nil
 }

@@ -1,10 +1,13 @@
 package listeners
 
 import (
+	"errors"
 	"fmt"
+	"math/big"
 	"open-payment-gateway/db"
 	"open-payment-gateway/providers"
 	"open-payment-gateway/types"
+	"open-payment-gateway/utils"
 	"strings"
 )
 
@@ -15,7 +18,29 @@ type EvmListener struct {
 	startingBlockNumber int64
 	addressStore        db.AddressStore
 	blockStore          db.BlockStore
+	transactionStore    db.TransactionStore
 	provider            providers.EvmProvider
+}
+
+func NewEvmListener(network string,
+	currency string,
+	chainId int64,
+	startingBlockNumber int64,
+	addressStore db.AddressStore,
+	blockStore db.BlockStore,
+	transactionStore db.TransactionStore,
+	provider providers.EvmProvider,
+) *EvmListener {
+	return &EvmListener{
+		network:             network,
+		currency:            currency,
+		chainId:             chainId,
+		startingBlockNumber: startingBlockNumber,
+		addressStore:        addressStore,
+		blockStore:          blockStore,
+		transactionStore:    transactionStore,
+		provider:            provider,
+	}
 }
 
 func (l EvmListener) Start() {
@@ -52,7 +77,7 @@ func (l EvmListener) Start() {
 				panic("Could not get block data from provider")
 			}
 
-			if err := ProcessTransactions(l.addressStore, processingBlock); err != nil {
+			if err := ProcessTransactions(l.addressStore, l.transactionStore, processingBlock); err != nil {
 				panic("Could not process block")
 			}
 
@@ -68,31 +93,12 @@ func (l EvmListener) Start() {
 	}
 }
 
-func NewEvmListener(network string,
-	currency string,
-	chainId int64,
-	startingBlockNumber int64,
-	addressStore db.AddressStore,
-	blockStore db.BlockStore,
-	provider providers.EvmProvider,
-) *EvmListener {
-	return &EvmListener{
-		network:             network,
-		currency:            currency,
-		chainId:             chainId,
-		startingBlockNumber: startingBlockNumber,
-		addressStore:        addressStore,
-		blockStore:          blockStore,
-		provider:            provider,
-	}
-}
-
-func ProcessTransactions(addressStore db.AddressStore, b types.Block) error {
+func ProcessTransactions(addressStore db.AddressStore, transactionStore db.TransactionStore, b types.Block) error {
 	transactions := b.Transactions
 	fmt.Println("Processing Block", b.BlockNumber)
 
 	for _, t := range transactions {
-		err := ProcessTransaction(addressStore, t)
+		err := ProcessTransaction(addressStore, transactionStore, t)
 		if err != nil {
 			return err
 		}
@@ -101,7 +107,7 @@ func ProcessTransactions(addressStore db.AddressStore, b types.Block) error {
 	return nil
 }
 
-func ProcessTransaction(addressStore db.AddressStore, tx types.Transaction) error {
+func ProcessTransaction(addressStore db.AddressStore, transactionStore db.TransactionStore, tx types.Transaction) error {
 	if tx.To == "" {
 		return nil
 	}
@@ -112,6 +118,17 @@ func ProcessTransaction(addressStore db.AddressStore, tx types.Transaction) erro
 	}
 
 	if txType != "" {
+		tx.TxType = txType
+		n := big.Int{}
+		ethValue, ok := n.SetString(tx.Value, 10)
+		if !ok {
+			return errors.New("could not convert wei to ETH")
+		}
+		tx.Value = utils.WeiToEther(ethValue).String()
+		err := transactionStore.SaveTransaction(&tx)
+		if err != nil {
+			return err
+		}
 		fmt.Printf("Received Transaction of type %s from %s to %s with the value of %s Ether\n", txType, tx.From, tx.To, tx.Value)
 	}
 
