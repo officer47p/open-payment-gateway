@@ -56,15 +56,22 @@ func main() {
 
 	// Creating network transaction listener
 	evmListener := listeners.NewEvmListener(
-		quitch,
-		wg,
-		network,
-		env.StartingBlockNumber,
-		addressStore,
-		blockStore,
-		transactionStore,
-		internalNotification,
-		provider,
+		&listeners.EvmListenerConfig{
+			// Real Config
+			Quitch: quitch,
+			Wg:     wg,
+			// Listener settings, also config
+			Network:             network,
+			StartingBlockNumber: env.StartingBlockNumber,
+			// Stores
+			AddressStore:     addressStore,
+			BlockStore:       blockStore,
+			TransactionStore: transactionStore,
+			// Communication
+			Notification: internalNotification,
+			// Third Parties
+			Provider: provider,
+		},
 	)
 
 	wg.Add(1)

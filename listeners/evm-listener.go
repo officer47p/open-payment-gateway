@@ -13,66 +13,52 @@ import (
 	"sync"
 )
 
-type EvmListener struct {
-	quitch              chan struct{}
-	wg                  *sync.WaitGroup
-	network             types.Network
-	startingBlockNumber int64
-	addressStore        db.AddressStore
-	blockStore          db.BlockStore
-	transactionStore    db.TransactionStore
-	notification        internal_notification.InternalNotification
-	provider            providers.EvmProvider
+type EvmListenerConfig struct {
+	Quitch              chan struct{}
+	Wg                  *sync.WaitGroup
+	Network             types.Network
+	StartingBlockNumber int64
+	AddressStore        db.AddressStore
+	BlockStore          db.BlockStore
+	TransactionStore    db.TransactionStore
+	Notification        internal_notification.InternalNotification
+	Provider            providers.EvmProvider
 }
 
-func NewEvmListener(
-	quitch chan struct{},
-	wg *sync.WaitGroup,
-	network types.Network,
-	startingBlockNumber int64,
-	addressStore db.AddressStore,
-	blockStore db.BlockStore,
-	transactionStore db.TransactionStore,
-	notification internal_notification.InternalNotification,
-	provider providers.EvmProvider,
-) *EvmListener {
+type EvmListener struct {
+	Config *EvmListenerConfig
+}
+
+func NewEvmListener(config *EvmListenerConfig) *EvmListener {
 	return &EvmListener{
-		quitch:              quitch,
-		wg:                  wg,
-		network:             network,
-		startingBlockNumber: startingBlockNumber,
-		addressStore:        addressStore,
-		blockStore:          blockStore,
-		transactionStore:    transactionStore,
-		notification:        notification,
-		provider:            provider,
+		Config: config,
 	}
 }
 
-func (l EvmListener) Start() {
+func (l *EvmListener) Start() {
 BlockIterator:
 	for {
 		select {
-		case <-l.quitch:
+		case <-l.Config.Quitch:
 			fmt.Println("Received stop signal")
 
 			break BlockIterator
 
 		default:
 			fmt.Println("In the default")
-			latestProcessedBlockNumber, err := l.blockStore.GetLatestProcessedBlockNumber()
+			latestProcessedBlockNumber, err := l.Config.BlockStore.GetLatestProcessedBlockNumber()
 			if err != nil {
 				panic("Could not get the latest processed block number from database")
 			}
 
 			// Check if we need to skip some blocks if the starting block number is not equal to -1
-			if l.startingBlockNumber > -1 && l.startingBlockNumber > latestProcessedBlockNumber {
-				latestProcessedBlockNumber = l.startingBlockNumber
+			if l.Config.StartingBlockNumber > -1 && l.Config.StartingBlockNumber > latestProcessedBlockNumber {
+				latestProcessedBlockNumber = l.Config.StartingBlockNumber
 			}
 
 			fmt.Printf("latest Processes Block Number is %d\n", latestProcessedBlockNumber)
 
-			latestBlockNumber, err := l.provider.GetLatestBlockNumber()
+			latestBlockNumber, err := l.Config.Provider.GetLatestBlockNumber()
 			if err != nil {
 				panic("Could not get the latest block number from provider")
 			}
@@ -85,18 +71,18 @@ BlockIterator:
 
 				processingBlockNumber := latestProcessedBlockNumber + 1
 				fmt.Printf("Processing Block Number is %d\n", processingBlockNumber)
-				processingBlock, err := l.provider.GetBlockByNumber(processingBlockNumber)
+				processingBlock, err := l.Config.Provider.GetBlockByNumber(processingBlockNumber)
 
 				if err != nil {
 					panic("Could not get block data from provider")
 				}
 
 				// TODO: Wrap ProcessBlock and SaveBlock in a database transaction
-				if err := ProcessBlock(l.notification, l.addressStore, l.transactionStore, processingBlock); err != nil {
+				if err := ProcessBlock(l.Config.Notification, l.Config.AddressStore, l.Config.TransactionStore, processingBlock); err != nil {
 					panic("Could not process block")
 				}
 
-				if err := l.blockStore.SaveBlock(&processingBlock); err != nil {
+				if err := l.Config.BlockStore.SaveBlock(&processingBlock); err != nil {
 					panic("Could not save processed block into the database")
 				}
 
@@ -108,13 +94,13 @@ BlockIterator:
 		}
 	}
 
-	l.wg.Done()
-	l.quitch <- struct{}{}
+	l.Config.Wg.Done()
+	l.Config.Quitch <- struct{}{}
 }
 
 func (l *EvmListener) Stop() bool {
-	l.quitch <- struct{}{}
-	<-l.quitch
+	l.Config.Quitch <- struct{}{}
+	<-l.Config.Quitch
 	return true
 }
 
