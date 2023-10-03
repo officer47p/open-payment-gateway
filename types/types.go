@@ -29,3 +29,10 @@ type Address struct {
 	HDpath  string
 	Balance string
 }
+
+type Network struct {
+	Name     string
+	Currency string
+	ChainID  int64
+	Decimals int64
+}

@@ -9,12 +9,14 @@ import (
 	"open-payment-gateway/utils"
 	"os"
 	"strconv"
+	"sync"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 func main() {
+	var network types.Network = types.Network{}
 
 	err := utils.LoadEnvVariableFile(".env")
 	if err != nil {
@@ -36,8 +38,18 @@ func main() {
 
 	chainId, err := strconv.ParseInt(os.Getenv("CHAIN_ID"), 10, 64)
 	if err != nil {
-		panic("Could not parse the chain id")
+		panic("Could not parse chain id env variables")
 	}
+
+	decimals, err := strconv.ParseInt(os.Getenv("DECIMALS"), 10, 64)
+	if err != nil {
+		panic("Could not parse decimals env variables")
+	}
+
+	network.Name = os.Getenv("NETWORK_NAME")
+	network.Currency = os.Getenv("NETWORK_CURRENCY")
+	network.ChainID = chainId
+	network.Decimals = decimals
 
 	startingBlockNumber, err := strconv.ParseInt(os.Getenv("STARTING_BLOCK_NUMBER"), 10, 64)
 	if err != nil {
@@ -47,11 +59,14 @@ func main() {
 	addressStore := db.NewAddressStore(postgresClient)
 	blockStore := db.NewBlockStore(postgresClient)
 	transactionStore := db.NewTransactionStore(postgresClient)
+	quitch := make(chan struct{})
+	wg := &sync.WaitGroup{}
+	defer close(quitch)
 
 	evmListener := listeners.NewEvmListener(
-		os.Getenv("NETWORK_NAME"),
-		os.Getenv("NETWORK_CURRENCY"),
-		chainId,
+		quitch,
+		wg,
+		network,
 		startingBlockNumber,
 		addressStore,
 		blockStore,
@@ -59,5 +74,11 @@ func main() {
 		provider,
 	)
 
-	evmListener.Start()
+	wg.Add(1)
+	go evmListener.Start()
+
+	// time.Sleep(time.Millisecond * 1)
+	// evmListener.Stop()
+	// fmt.Println("loopExitedGracefully")
+	wg.Wait()
 }
