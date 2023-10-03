@@ -11,6 +11,7 @@ import (
 	"open-payment-gateway/utils"
 	"strings"
 	"sync"
+	"time"
 )
 
 type EvmListenerConfig struct {
@@ -23,6 +24,7 @@ type EvmListenerConfig struct {
 	TransactionStore    db.TransactionStore
 	Notification        internal_notification.InternalNotification
 	Provider            providers.EvmProvider
+	WaitForNewBlock     time.Duration
 }
 
 type EvmListener struct {
@@ -88,6 +90,7 @@ BlockIterator:
 
 			} else {
 				//  Wait for new blocks to be mined
+				time.Sleep(l.Config.WaitForNewBlock)
 				// fmt.Println("We've processed all the blocks, waiting for new blocks")
 
 			}

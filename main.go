@@ -9,6 +9,7 @@ import (
 	"open-payment-gateway/types"
 	"open-payment-gateway/utils"
 	"sync"
+	"time"
 )
 
 func main() {
@@ -70,7 +71,8 @@ func main() {
 			// Communication
 			Notification: internalNotification,
 			// Third Parties
-			Provider: provider,
+			Provider:        provider,
+			WaitForNewBlock: time.Second * 1,
 		},
 	)
 
