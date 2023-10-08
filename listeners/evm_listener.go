@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math/big"
 	"open-payment-gateway/db"
 	"open-payment-gateway/internal_notification"
 	"open-payment-gateway/providers"
@@ -39,6 +38,7 @@ func NewEvmListener(config *EvmListenerConfig) *EvmListener {
 }
 
 func (l *EvmListener) Start() {
+
 BlockIterator:
 	for {
 		select {
@@ -59,7 +59,6 @@ BlockIterator:
 			}
 
 			log.Printf("latest Processes block number: %d\n", latestProcessedBlockNumber)
-
 			latestBlockNumber, err := l.Config.Provider.GetLatestBlockNumber()
 			if err != nil {
 				log.Fatal("Could not get the latest block number from provider")
@@ -133,17 +132,17 @@ func ProcessTransaction(notification internal_notification.InternalNotification,
 
 	if txType != "" {
 		tx.TxType = txType
-		n := big.Int{}
-		ethValue, ok := n.SetString(tx.Value, 10)
+		weiValue, ok := utils.StringToBigInt(tx.Value)
 		if !ok {
-			return errors.New("could not convert wei to ETH")
+			return errors.New("could not convert string to bigint wei")
 		}
-		tx.Value = utils.WeiToEther(ethValue).String()
+		tx.Value = utils.WeiToEther(weiValue).String()
 		err := transactionStore.SaveTransaction(&tx)
 		if err != nil {
 			return err
 		}
 
+		log.Printf("Received Transaction of type %s from %s to %s with the value of %s Ether\n", txType, tx.From, tx.To, tx.Value)
 		// NOT IMPLEMENTED
 		err = notification.Notify("TRANSACTION_DETECTED", fmt.Sprintf("Received Transaction of type %s from %s to %s with the value of %s Ether\n", txType, tx.From, tx.To, tx.Value))
 		if err != nil {
@@ -151,7 +150,6 @@ func ProcessTransaction(notification internal_notification.InternalNotification,
 		}
 
 	}
-
 	return nil
 }
 

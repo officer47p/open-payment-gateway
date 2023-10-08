@@ -111,3 +111,8 @@ func EtherToWei(eth *big.Float) *big.Int {
 	wei := new(big.Int).Add(truncInt, fracInt)
 	return wei
 }
+
+func StringToBigInt(s string) (*big.Int, bool) {
+	n := big.Int{}
+	return n.SetString(s, 10)
+}
