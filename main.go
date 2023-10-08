@@ -18,6 +18,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error loading .env file: %s", err)
 	}
+	log.Println("Environment variables are loaded")
 
 	// Creating network object
 	network := types.Network{
@@ -26,6 +27,7 @@ func main() {
 		ChainID:  env.ChainID,
 		Decimals: env.Decimals,
 	}
+	log.Printf("Network struct was created. Network: %+v", network)
 
 	// Database connection
 	dbClient, err := db.GetDBClient(db.DBClientSettings{
@@ -33,14 +35,16 @@ func main() {
 		AutoMigrateModels: []any{&types.Block{}, &types.Transaction{}, &types.Address{}},
 	})
 	if err != nil {
-		panic("Could not connect to the Postgres database")
+		log.Fatal("Could not connect to the Postgres database")
 	}
+	log.Print("Connected to the database")
 
 	// Provider
 	provider, err := providers.NewEvmProvider(env.ProviderUrl)
 	if err != nil {
-		panic("Could not connect to the provider")
+		log.Fatal("Could not connect to the provider")
 	}
+	log.Print("Provider Initiated")
 
 	// Database Stores
 	addressStore := db.NewAddressStore(dbClient)

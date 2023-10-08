@@ -84,7 +84,6 @@ func LoadEnvVariableFile(path string) (envVariables, error) {
 	env.StartingBlockNumber = startingBlockNumber
 
 	e := env.getOnlyIfExists("ENVIRONMENT")
-	fmt.Println(e)
 	if !isEnvironmentValid(e) {
 		log.Fatal("Invalid environment. Environment should be \"prod\" or \"dev\"")
 	}
