@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"open-payment-gateway/types"
 
-	ethereum_types "github.com/ethereum/go-ethereum/core/types"
+	ethereumTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
@@ -47,7 +47,7 @@ func (p EvmProvider) GetBlockByNumber(n int64) (types.Block, error) {
 		return types.Block{}, err
 	}
 
-	transactions := []types.Transaction{}
+	var transactions []types.Transaction
 	for _, t := range block.Transactions() {
 		transactions = append(transactions, parseTransaction(t, block, p.network))
 	}
@@ -61,7 +61,7 @@ func (p EvmProvider) GetBlockByNumber(n int64) (types.Block, error) {
 	}, nil
 }
 
-func parseTransaction(tx *ethereum_types.Transaction, block *ethereum_types.Block, network types.Network) types.Transaction {
+func parseTransaction(tx *ethereumTypes.Transaction, block *ethereumTypes.Block, network types.Network) types.Transaction {
 	blockNumber := block.Number().Int64()
 	blockHash := block.Hash().String()
 	txHash := tx.Hash().String()
@@ -88,8 +88,8 @@ func parseTransaction(tx *ethereum_types.Transaction, block *ethereum_types.Bloc
 	}
 }
 
-func getSenderAddressForTransaction(t *ethereum_types.Transaction) (string, bool) {
-	address, err := ethereum_types.Sender(ethereum_types.LatestSignerForChainID(t.ChainId()), t)
+func getSenderAddressForTransaction(t *ethereumTypes.Transaction) (string, bool) {
+	address, err := ethereumTypes.Sender(ethereumTypes.LatestSignerForChainID(t.ChainId()), t)
 	if err != nil {
 		return "", false
 	}
@@ -97,7 +97,7 @@ func getSenderAddressForTransaction(t *ethereum_types.Transaction) (string, bool
 	return address.String(), true
 }
 
-func getReceiverAddressForTransaction(t *ethereum_types.Transaction) (string, bool) {
+func getReceiverAddressForTransaction(t *ethereumTypes.Transaction) (string, bool) {
 	if t.To() != nil {
 		return t.To().String(), true
 	}
