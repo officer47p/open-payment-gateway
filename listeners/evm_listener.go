@@ -76,7 +76,6 @@ BlockIterator:
 					log.Fatal("Could not get block data from provider")
 				}
 
-				// TODO: Wrap ProcessBlock and SaveBlock in a database transaction
 				if err := ProcessBlock(l.Config.Notification, l.Config.AddressStore, l.Config.TransactionStore, processingBlock); err != nil {
 					log.Fatal("Could not process block")
 				}
