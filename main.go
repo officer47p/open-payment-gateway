@@ -62,7 +62,6 @@ func main() {
 	// Creating network transaction listener
 	evmListener := listeners.NewEvmListener(
 		&listeners.EvmListenerConfig{
-			// Real Config
 			Quitch: quitch,
 			Wg:     wg,
 			// Listener settings, also config
