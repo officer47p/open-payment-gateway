@@ -40,7 +40,7 @@ func main() {
 	log.Print("Connected to the database")
 
 	// Provider
-	provider, err := providers.NewEvmProvider(env.ProviderUrl)
+	provider, err := providers.NewEvmProvider(env.ProviderUrl, network)
 	if err != nil {
 		log.Fatal("Could not connect to the provider")
 	}

@@ -37,7 +37,7 @@ func TestEvmListenerStopFunction(t *testing.T) {
 	}
 
 	// Provider
-	provider, err := providers.NewEvmProvider(env.ProviderUrl)
+	provider, err := providers.NewEvmProvider(env.ProviderUrl, network)
 	if err != nil {
 		panic("Could not connect to the provider")
 	}
