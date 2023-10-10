@@ -2,7 +2,6 @@ package listeners
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"open-payment-gateway/db"
 	"open-payment-gateway/internal_notification"
@@ -15,16 +14,15 @@ import (
 )
 
 type EvmListenerConfig struct {
-	Quitch              chan struct{}
-	Wg                  *sync.WaitGroup
-	Network             types.Network
-	StartingBlockNumber int64
-	AddressStore        db.AddressStore
-	BlockStore          db.BlockStore
-	TransactionStore    db.TransactionStore
-	Notification        internal_notification.InternalNotification
-	Provider            providers.EvmProvider
-	WaitForNewBlock     time.Duration
+	Quitch           chan struct{}
+	Wg               *sync.WaitGroup
+	Network          types.Network
+	AddressStore     db.AddressStore
+	BlockStore       db.BlockStore
+	TransactionStore db.TransactionStore
+	Notification     internal_notification.InternalNotification
+	Provider         providers.EvmProvider
+	WaitForNewBlock  time.Duration
 }
 
 type EvmListener struct {
@@ -54,8 +52,8 @@ BlockIterator:
 			}
 
 			// Check if we need to skip some blocks if the starting block number is not equal to -1
-			if l.Config.StartingBlockNumber > -1 && l.Config.StartingBlockNumber > latestProcessedBlockNumber {
-				latestProcessedBlockNumber = l.Config.StartingBlockNumber
+			if l.Config.Network.StartingBlockNumber > -1 && l.Config.Network.StartingBlockNumber > latestProcessedBlockNumber {
+				latestProcessedBlockNumber = l.Config.Network.StartingBlockNumber
 			}
 
 			log.Printf("latest Processes block number: %d\n", latestProcessedBlockNumber)
@@ -142,8 +140,23 @@ func ProcessTransaction(notification internal_notification.InternalNotification,
 		}
 
 		log.Printf("Received Transaction of type %s from %s to %s with the value of %s Ether\n", txType, tx.From, tx.To, tx.Value)
+		n, err := types.NewTransactionNotification{
+			BlockNumber: tx.BlockNumber,
+			BlockHash:   tx.BlockHash,
+			Network:     tx.Network,
+			Currency:    tx.Currency,
+			TxHash:      tx.TxHash,
+			TxType:      tx.TxType,
+			Value:       tx.Value,
+			From:        tx.From,
+			To:          tx.To,
+		}.ToJSON()
+
+		if err != nil {
+			return err
+		}
 		// NOT IMPLEMENTED
-		err = notification.Notify("TRANSACTION_DETECTED", fmt.Sprintf("Received Transaction of type %s from %s to %s with the value of %s Ether\n", txType, tx.From, tx.To, tx.Value))
+		err = notification.Notify("TRANSACTION_DETECTED", n)
 		if err != nil {
 			log.Fatal("NOT IMPLEMENTED")
 		}

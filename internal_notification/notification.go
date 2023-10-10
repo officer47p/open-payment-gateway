@@ -2,7 +2,8 @@ package internal_notification
 
 import (
 	"fmt"
-	"open-payment-gateway/db"
+
+	"github.com/nats-io/nats.go"
 )
 
 type InternalNotification interface {
@@ -10,16 +11,22 @@ type InternalNotification interface {
 }
 
 type NatsInternalNotification struct {
-	transactionStore db.TransactionStore
+	client *nats.Conn
 }
 
-func NewNatsInternalNotification(s db.TransactionStore) *NatsInternalNotification {
-	return &NatsInternalNotification{
-		transactionStore: s,
+func NewNatsInternalNotification(url string) (*NatsInternalNotification, error) {
+	nc, err := nats.Connect(url)
+	if err != nil {
+		return nil, err
 	}
+
+	return &NatsInternalNotification{client: nc}, nil
 }
 
-func (n *NatsInternalNotification) Notify(topic string, v string) error {
-	fmt.Printf("Sent Internal Notification. Topic: %s, Value: %s", topic, v)
+func (n *NatsInternalNotification) Notify(subject string, v string) error {
+	if err := n.client.Publish(subject, []byte(v)); err != nil {
+		return err
+	}
+	fmt.Printf("Sent Internal Notification. Topic: %s, Value: %s", subject, v)
 	return nil
 }

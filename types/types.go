@@ -1,44 +1,46 @@
 package types
 
-import (
-	"gorm.io/gorm"
-)
+import "encoding/json"
 
-type Block struct {
-	gorm.Model
-	ID                uint          `gorm:"column:id;primaryKey;autoIncrement"`
-	Network           string        `gorm:"column:network;not null"`
-	BlockNumber       int64         `gorm:"column:block_number;not null;unique"`
-	BlockHash         string        `gorm:"column:block_hash;not null;unique"`
-	PreviousBlockHash string        `gorm:"column:previous_block_hash;not null;unique"`
-	Transactions      []Transaction `gorm:"-"`
+type NewTransactionNotification struct {
+	BlockNumber int64  `json:"block_number"`
+	BlockHash   string `json:"block_hash"`
+	Network     string `json:"network"`
+	Currency    string `json:"currency"`
+	TxHash      string `json:"tx_hash"`
+	TxType      string `json:"tx_type"`
+	Value       string `json:"value"`
+	From        string `json:"from"`
+	To          string `json:"to"`
 }
 
-type Transaction struct {
-	gorm.Model
-	ID          uint   `gorm:"column:id;primaryKey;autoIncrement"`
-	Broadcasted bool   `gorm:"column:broadcasted;not null"`
-	BlockNumber int64  `gorm:"column:block_number;not null"`
-	BlockHash   string `gorm:"column:block_hash;not null"`
-	Network     string `gorm:"column:network;not null"`
-	Currency    string `gorm:"column:currency;not null"`
-	TxHash      string `gorm:"column:tx_hash;not null;unique"`
-	TxType      string `gorm:"column:tx_type;not null"`
-	Value       string `gorm:"column:value;not null"`
-	From        string `gorm:"column:from;not null"`
-	To          string `gorm:"column:to;not null"`
-}
+func (n NewTransactionNotification) ToJSON() (string, error) {
+	b, err := json.Marshal(n)
+	if err != nil {
+		return "", err
+	}
 
-type Address struct {
-	gorm.Model
-	ID      uint   `gorm:"column:id;primaryKey;autoIncrement"`
-	Address string `gorm:"column:address;not null;unique"`
-	HDPath  string `gorm:"column:hd_path;not null;unique"`
+	return string(b), nil
 }
 
 type Network struct {
-	Name     string
-	Currency string
-	ChainID  int64
-	Decimals int64
+	Name                string `json:"name"`
+	Currency            string `json:"currency"`
+	ChainID             int64  `json:"chainID"`
+	Decimals            int64  `json:"decimals"`
+	StartingBlockNumber int64  `json:"startingBlockNumber"`
+}
+
+type Contract struct {
+	Name                string `json:"name"`
+	Currency            string `json:"currency"`
+	Decimals            int    `json:"decimals"`
+	ContractAddress     string `json:"contractAddress"`
+	Standard            string `json:"standard"`
+	StartingBlockNumber int64  `json:"startingBlockNumber"`
+}
+
+type NetworkConfig struct {
+	Network   Network    `json:"network"`
+	Contracts []Contract `json:"contracts"`
 }

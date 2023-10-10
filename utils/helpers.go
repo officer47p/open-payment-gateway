@@ -14,18 +14,14 @@ import (
 )
 
 type envVariables struct {
-	DBUrl               string
-	DBPort              int64
-	DBName              string
-	DBUser              string
-	DBPassword          string
-	ChainID             int64
-	Decimals            int64
-	NetworkName         string
-	NetworkCurrency     string
-	StartingBlockNumber int64
-	ProviderUrl         string
-	Environment         string // This can be prod or dev
+	DBUrl       string
+	DBPort      int64
+	DBName      string
+	DBUser      string
+	DBPassword  string
+	ProviderUrl string
+	NatsUrl     string
+	Environment string // This can be prod or dev
 }
 
 func (e *envVariables) getOnlyIfExists(n string) string {
@@ -49,39 +45,17 @@ func LoadEnvVariableFile(path string) (envVariables, error) {
 		return env, err
 	}
 
-	env.DBUrl = env.getOnlyIfExists("DB_URL")
-
 	dbPort, err := strconv.ParseInt(env.getOnlyIfExists("DB_PORT"), 10, 64)
 	if err != nil {
 		return env, errors.New("could not parse DB_PORT env variable")
 	}
 	env.DBPort = dbPort
-
+	env.DBUrl = env.getOnlyIfExists("DB_URL")
 	env.DBName = env.getOnlyIfExists("DB_NAME")
 	env.DBUser = env.getOnlyIfExists("DB_USER")
 	env.DBPassword = env.getOnlyIfExists("DB_PASSWORD")
-
-	chainId, err := strconv.ParseInt(env.getOnlyIfExists("CHAIN_ID"), 10, 64)
-	if err != nil {
-		return env, errors.New("could not parse CHAIN_ID env variable")
-	}
-	env.ChainID = chainId
-
-	decimals, err := strconv.ParseInt(env.getOnlyIfExists("DECIMALS"), 10, 64)
-	if err != nil {
-		log.Fatal("Could not parse DECIMALS env variable")
-	}
-	env.Decimals = decimals
-
 	env.ProviderUrl = env.getOnlyIfExists("PROVIDER_URL")
-	env.NetworkName = env.getOnlyIfExists("NETWORK_NAME")
-	env.NetworkCurrency = env.getOnlyIfExists("NETWORK_CURRENCY")
-
-	startingBlockNumber, err := strconv.ParseInt(env.getOnlyIfExists("STARTING_BLOCK_NUMBER"), 10, 64)
-	if err != nil {
-		log.Fatal("Could not parse STARTING_BLOCK_NUMBER env variable")
-	}
-	env.StartingBlockNumber = startingBlockNumber
+	env.NatsUrl = env.getOnlyIfExists("NATS_URL")
 
 	e := env.getOnlyIfExists("ENVIRONMENT")
 	if !isEnvironmentValid(e) {

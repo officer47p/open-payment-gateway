@@ -29,7 +29,11 @@ require (
 	github.com/jackc/pgx/v5 v5.3.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/klauspost/compress v1.17.0 // indirect
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
+	github.com/nats-io/nats.go v1.30.2 // indirect
+	github.com/nats-io/nkeys v0.4.5 // indirect
+	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/shirou/gopsutil v3.21.4-0.20210419000835-c7a38de76ee5+incompatible // indirect
 	github.com/supranational/blst v0.3.11 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect

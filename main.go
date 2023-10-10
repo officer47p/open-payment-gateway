@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"open-payment-gateway/config"
 	"open-payment-gateway/db"
 	"open-payment-gateway/internal_notification"
 	"open-payment-gateway/listeners"
@@ -13,21 +14,20 @@ import (
 )
 
 func main() {
+
+	networkConfig, err := config.LoadNetworkConfig("config/network-config.json")
+	if err != nil {
+		log.Fatalf("[init] error loading network config file: %s", err.Error())
+
+	}
+	log.Println("[init] network config is loaded")
+
 	// Loading environment variables
 	env, err := utils.LoadEnvVariableFile(".env")
 	if err != nil {
-		log.Fatalf("Error loading .env file: %s", err)
+		log.Fatalf("[init] error loading .env file: %s", err.Error())
 	}
-	log.Println("Environment variables are loaded")
-
-	// Creating network object
-	network := types.Network{
-		Name:     env.NetworkName,
-		Currency: env.NetworkCurrency,
-		ChainID:  env.ChainID,
-		Decimals: env.Decimals,
-	}
-	log.Printf("Network struct was created. Network: %+v", network)
+	log.Println("[init] environment variables are loaded")
 
 	// Database connection
 	dbClient, err := db.GetDBClient(db.DBClientSettings{
@@ -35,24 +35,27 @@ func main() {
 		AutoMigrateModels: []any{&types.Block{}, &types.Transaction{}, &types.Address{}},
 	})
 	if err != nil {
-		log.Fatal("Could not connect to the Postgres database")
+		log.Fatalf("[init] could not connect to the Postgres database: %s", err.Error())
 	}
-	log.Print("Connected to the database")
+	log.Print("[init] connected to the database")
 
 	// Provider
-	provider, err := providers.NewEvmProvider(env.ProviderUrl, network)
+	provider, err := providers.NewEvmProvider(env.ProviderUrl, networkConfig.Network)
 	if err != nil {
-		log.Fatal("Could not connect to the provider")
+		log.Fatalf("[init] could not connect to the provider: %s", err.Error())
 	}
-	log.Print("Provider Initiated")
+	log.Print("[init] provider Initiated")
 
 	// Database Stores
 	addressStore := db.NewAddressStore(dbClient)
 	blockStore := db.NewBlockStore(dbClient)
 	transactionStore := db.NewTransactionStore(dbClient)
-
 	// Internal Service Communication
-	internalNotification := internal_notification.NewNatsInternalNotification(transactionStore)
+	internalNotification, err := internal_notification.NewNatsInternalNotification(env.NatsUrl)
+	if err != nil {
+		log.Fatalf("[init] could not connect to the nats service: %s", err.Error())
+	}
+	log.Print("[init] connected to the nats service")
 
 	// Listener control channels
 	quitch := make(chan struct{})
@@ -65,8 +68,7 @@ func main() {
 			Quitch: quitch,
 			Wg:     wg,
 			// Listener settings, also config
-			Network:             network,
-			StartingBlockNumber: env.StartingBlockNumber,
+			Network: networkConfig.Network,
 			// Stores
 			AddressStore:     addressStore,
 			BlockStore:       blockStore,
