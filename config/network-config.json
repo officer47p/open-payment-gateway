@@ -4,7 +4,7 @@
     "currency": "ETH",
     "chainID": 1,
     "decimals": 18,
-    "startingBlockNumber": 9797380
+    "startingBlockNumber": 9797391
   },
   "contracts": [
     {

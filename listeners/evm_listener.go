@@ -158,7 +158,9 @@ func ProcessTransaction(notification internal_notification.InternalNotification,
 		// NOT IMPLEMENTED
 		err = notification.Notify("TRANSACTION_DETECTED", n)
 		if err != nil {
-			log.Fatal("NOT IMPLEMENTED")
+			log.Printf("Failed to send notification to notification service: %+v", err)
+		} else {
+			transactionStore.UpdateBroadcasted(tx.TxHash, true)
 		}
 
 	}
