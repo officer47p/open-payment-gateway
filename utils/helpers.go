@@ -33,10 +33,6 @@ func (e *envVariables) getOnlyIfExists(n string) string {
 	return v
 }
 
-func isEnvironmentValid(e string) bool {
-	return e == "prod" || e == "dev"
-}
-
 func LoadEnvVariableFile(path string) (envVariables, error) {
 	env := envVariables{}
 
@@ -56,12 +52,6 @@ func LoadEnvVariableFile(path string) (envVariables, error) {
 	env.DBPassword = env.getOnlyIfExists("DB_PASSWORD")
 	env.ProviderUrl = env.getOnlyIfExists("PROVIDER_URL")
 	env.NatsUrl = env.getOnlyIfExists("NATS_URL")
-
-	e := env.getOnlyIfExists("ENVIRONMENT")
-	if !isEnvironmentValid(e) {
-		log.Fatal("Invalid environment. Environment should be \"prod\" or \"dev\"")
-	}
-	env.Environment = e
 
 	return env, nil
 }

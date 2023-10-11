@@ -1,4 +1,4 @@
-.env
+.env*
 *.db
 /bin
 /.idea/dataSources.xml
