@@ -1,91 +1,127 @@
 package listeners
 
-// import (
-// 	"log"
-// 	"open-payment-gateway/db"
-// 	"open-payment-gateway/internal_notification"
-// 	"open-payment-gateway/providers"
-// 	"open-payment-gateway/types"
-// 	"open-payment-gateway/utils"
-// 	"sync"
-// 	"testing"
-// 	"time"
-// )
+import (
+	"open-payment-gateway/types"
+	"strings"
+	"sync"
+	"testing"
+	"time"
 
-// func TestEvmListenerStopFunction(t *testing.T) {
-// 	// Loading environment variables
-// 	env, err := utils.LoadEnvVariableFile("../.env")
-// 	if err != nil {
-// 		log.Fatalf("Error loading .env file: %s", err)
-// 	}
+	"golang.org/x/exp/slices"
+)
 
-// 	// Creating network object
-// 	network := types.Network{
-// 		Name:     env.NetworkName,
-// 		Currency: env.NetworkCurrency,
-// 		ChainID:  env.ChainID,
-// 		Decimals: env.Decimals,
-// 	}
+// Mocking AddressStore
+type MockAddressStore struct {
+	addressExistsCalls int64
+	addresses          []string
+}
 
-// 	// Database connection
-// 	dbClient, err := db.GetDBClient(db.DBClientSettings{
-// 		DBUrl:             db.CreateDBUrl(env.DBUrl, env.DBPort, env.DBName, env.DBUser, env.DBPassword),
-// 		AutoMigrateModels: []any{&types.Block{}, &types.Transaction{}, &types.Address{}},
-// 	})
-// 	if err != nil {
-// 		panic("Could not connect to the Postgres database")
-// 	}
+func (s *MockAddressStore) AddressExists(address string) (bool, error) {
+	s.addressExistsCalls++
+	exists := slices.Contains(s.addresses, strings.ToLower(address))
+	return exists, nil
+}
 
-// 	// Provider
-// 	provider, err := providers.NewEvmProvider(env.ProviderUrl, network)
-// 	if err != nil {
-// 		panic("Could not connect to the provider")
-// 	}
+// Mock BlockStore
+type MockBlockStore struct {
+	saveBlockCalls                     int64
+	blocks                             []types.Block
+	getLatestProcessedBlockNumberCalls int64
+}
 
-// 	// Database Stores
-// 	addressStore := db.NewAddressStore(dbClient)
-// 	blockStore := db.NewBlockStore(dbClient)
-// 	transactionStore := db.NewTransactionStore(dbClient)
+func (s *MockBlockStore) SaveBlock(b *types.Block) error {
+	s.saveBlockCalls++
+	s.blocks = append(s.blocks, *b)
+	return nil
+}
 
-// 	// Internal Service Communication
-// 	internalNotification := internal_notification.NewNatsInternalNotification(transactionStore)
+func (s *MockBlockStore) GetLatestProcessedBlockNumber() (int64, error) {
+	s.getLatestProcessedBlockNumberCalls++
+	if len(s.blocks) == 0 {
+		return -1, nil
+	}
+	latestProcessedBlockNumber := 0
+	for _, b := range s.blocks {
+		if b.BlockNumber > int64(latestProcessedBlockNumber) {
+			latestProcessedBlockNumber = int(b.BlockNumber)
+		}
+	}
+	return int64(latestProcessedBlockNumber), nil
+}
 
-// 	// Listener control channels
-// 	quitch := make(chan struct{})
-// 	wg := &sync.WaitGroup{}
-// 	defer close(quitch)
+type MockTransactionStore struct {
+}
 
-// 	// Creating network transaction listener
-// 	evmListener := NewEvmListener(
-// 		&EvmListenerConfig{
-// 			// Real Config
-// 			Quitch: quitch,
-// 			Wg:     wg,
-// 			// Listener settings, also config
-// 			Network:             network,
-// 			StartingBlockNumber: env.StartingBlockNumber,
-// 			// Stores
-// 			AddressStore:     addressStore,
-// 			BlockStore:       blockStore,
-// 			TransactionStore: transactionStore,
-// 			// Communication
-// 			Notification: internalNotification,
-// 			// Third Parties
-// 			Provider:        provider,
-// 			WaitForNewBlock: time.Second * 1,
-// 		},
-// 	)
+func (s MockTransactionStore) SaveTransaction(t *types.Transaction) error {
+	return nil
+}
 
-// 	wg.Add(1)
-// 	// Starting the listener
-// 	go evmListener.Start()
+func (s MockTransactionStore) UpdateBroadcasted(txHash string, value bool) error {
+	return nil
+}
 
-// 	// time.Sleep(time.Millisecond * 1)
-// 	didStop := evmListener.Stop()
-// 	if !didStop {
-// 		t.Fatal("The listener did not stop")
-// 	}
+var network = types.Network{
+	Name:     "ethereum",
+	Currency: "ETH",
+	ChainID:  1,
+	Decimals: 18,
+}
 
-// 	// fmt.Println("loopExitedGracefully")
-// 	wg.Wait()
-// }
+type MockInternalNotification struct {
+}
+
+func (in MockInternalNotification) Notify(string, string) error {
+	return nil
+}
+
+type MockEvmProvider struct {
+}
+
+func (p MockEvmProvider) GetLatestBlockNumber() (int64, error) {
+	return int64(33), nil
+}
+
+func (p MockEvmProvider) GetBlockByNumber(n int64) (types.Block, error) {
+	return types.Block{}, nil
+}
+
+func TestEvmListenerStopFunction(t *testing.T) {
+	quitch := make(chan struct{})
+	wg := sync.WaitGroup{}
+	mockAddressStore := MockAddressStore{}
+	mockBlockStore := MockBlockStore{}
+	mockTransactionStore := MockTransactionStore{}
+	mockNotification := MockInternalNotification{}
+	mockProvider := MockEvmProvider{}
+
+	l := NewEvmListener(&EvmListenerConfig{
+		Quitch:           quitch,
+		Wg:               &wg,
+		Network:          network,
+		AddressStore:     &mockAddressStore,
+		BlockStore:       &mockBlockStore,
+		TransactionStore: &mockTransactionStore,
+		Notification:     &mockNotification,
+		Provider:         mockProvider,
+		WaitForNewBlock:  time.Second,
+	})
+
+	wg.Add(1)
+	go l.Start()
+
+	stopped := l.Stop()
+
+	wg.Wait()
+	if !stopped {
+		t.Error("expected the listener to stop, but returned false")
+	}
+
+	if calls := mockAddressStore.addressExistsCalls; calls != 0 {
+		t.Errorf("expected zero calls to address store, got: %d", calls)
+	}
+
+	if calls := mockBlockStore.getLatestProcessedBlockNumberCalls; calls != 0 {
+		t.Errorf("expected zero calls to block store, got: %d", calls)
+	}
+
+}
