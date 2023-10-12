@@ -9,23 +9,28 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-type EvmProvider struct {
+type EvmProvider interface {
+	GetLatestBlockNumber() (int64, error)
+	GetBlockByNumber(n int64) (types.Block, error)
+}
+
+type ThirdPartyEvmProvider struct {
 	client  *ethclient.Client
 	network types.Network
 }
 
-func NewEvmProvider(url string, network types.Network) (EvmProvider, error) {
+func NewEvmProvider(url string, network types.Network) (ThirdPartyEvmProvider, error) {
 	ctx := context.Background()
 	client, err := ethclient.DialContext(ctx, url)
 
 	if err != nil {
-		return EvmProvider{}, err
+		return ThirdPartyEvmProvider{}, err
 	}
 
-	return EvmProvider{client: client, network: network}, nil
+	return ThirdPartyEvmProvider{client: client, network: network}, nil
 }
 
-func (p EvmProvider) GetLatestBlockNumber() (int64, error) {
+func (p ThirdPartyEvmProvider) GetLatestBlockNumber() (int64, error) {
 	ctx := context.Background()
 	n, err := p.client.BlockNumber(ctx)
 	if err != nil {
@@ -40,7 +45,7 @@ func (p EvmProvider) GetLatestBlockNumber() (int64, error) {
 	return int64(n), nil
 }
 
-func (p EvmProvider) GetBlockByNumber(n int64) (types.Block, error) {
+func (p ThirdPartyEvmProvider) GetBlockByNumber(n int64) (types.Block, error) {
 	ctx := context.Background()
 	block, err := p.client.BlockByNumber(ctx, big.NewInt(n))
 	if err != nil {
