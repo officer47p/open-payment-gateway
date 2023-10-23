@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"open-payment-gateway/types"
 	"os"
 	"strconv"
 	"strings"
@@ -13,18 +14,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type EnvVariables struct {
-	DBUrl       string
-	DBPort      int64
-	DBName      string
-	DBUser      string
-	DBPassword  string
-	ProviderUrl string
-	NatsUrl     string
-	Environment string // This can be prod or dev
-}
-
-func (e *EnvVariables) getOnlyIfExists(n string) string {
+func getEnvVarOnlyIfExists(n string) string {
 	v := os.Getenv(n)
 	if v == "" {
 		log.Fatalf("key %s does not exist in the environment variables", n)
@@ -33,25 +23,25 @@ func (e *EnvVariables) getOnlyIfExists(n string) string {
 	return v
 }
 
-func LoadEnvVariableFile(path string) (EnvVariables, error) {
-	env := EnvVariables{}
+func LoadEnvVariableFile(path string) (types.EnvVariables, error) {
+	env := types.EnvVariables{}
 
 	err := godotenv.Load(path)
 	if err != nil {
 		return env, err
 	}
 
-	dbPort, err := strconv.ParseInt(env.getOnlyIfExists("DB_PORT"), 10, 64)
+	dbPort, err := strconv.ParseInt(getEnvVarOnlyIfExists("DB_PORT"), 10, 64)
 	if err != nil {
 		return env, errors.New("could not parse DB_PORT env variable")
 	}
 	env.DBPort = dbPort
-	env.DBUrl = env.getOnlyIfExists("DB_URL")
-	env.DBName = env.getOnlyIfExists("DB_NAME")
-	env.DBUser = env.getOnlyIfExists("DB_USER")
-	env.DBPassword = env.getOnlyIfExists("DB_PASSWORD")
-	env.ProviderUrl = env.getOnlyIfExists("PROVIDER_URL")
-	env.NatsUrl = env.getOnlyIfExists("NATS_URL")
+	env.DBUrl = getEnvVarOnlyIfExists("DB_URL")
+	env.DBName = getEnvVarOnlyIfExists("DB_NAME")
+	env.DBUser = getEnvVarOnlyIfExists("DB_USER")
+	env.DBPassword = getEnvVarOnlyIfExists("DB_PASSWORD")
+	env.ProviderUrl = getEnvVarOnlyIfExists("PROVIDER_URL")
+	env.NatsUrl = getEnvVarOnlyIfExists("NATS_URL")
 
 	return env, nil
 }

@@ -16,18 +16,16 @@ import (
 )
 
 func main() {
-	networkConfig := loadNetworkConfig()
 	env := loadEnvVariables()
+	networkConfig := loadNetworkConfig()
 	dbClient := getDBClient(env)
 	provider := getProvider(env, networkConfig)
-
+	internalNotification := getInternalNotification(env)
 	// Database Stores
 	addressStore := db.NewAddressStore(dbClient)
 	blockStore := db.NewBlockStore(dbClient)
 	transactionStore := db.NewTransactionStore(dbClient)
 	// Internal Service Communication
-	internalNotification := getInternalNotification(env)
-
 	// Listener control channels
 	quitch := make(chan struct{})
 	wg := &sync.WaitGroup{}
@@ -73,7 +71,7 @@ func loadNetworkConfig() types.NetworkConfig {
 
 }
 
-func loadEnvVariables() utils.EnvVariables {
+func loadEnvVariables() types.EnvVariables {
 	// Loading environment variables
 	env, err := utils.LoadEnvVariableFile(".env")
 	if err != nil {
@@ -83,7 +81,7 @@ func loadEnvVariables() utils.EnvVariables {
 	return env
 }
 
-func getDBClient(env utils.EnvVariables) *gorm.DB {
+func getDBClient(env types.EnvVariables) *gorm.DB {
 	// Database connection
 	dbClient, err := db.GetPostgresClient(db.DBClientSettings{
 		DBUrl:             db.CreatePostgresDBUrl(env.DBUrl, env.DBPort, env.DBName, env.DBUser, env.DBPassword),
@@ -97,7 +95,7 @@ func getDBClient(env utils.EnvVariables) *gorm.DB {
 
 }
 
-func getProvider(env utils.EnvVariables, networkConfig types.NetworkConfig) providers.EvmProvider {
+func getProvider(env types.EnvVariables, networkConfig types.NetworkConfig) providers.EvmProvider {
 	// Provider
 	provider, err := providers.NewEvmProvider(env.ProviderUrl, networkConfig.Network)
 	if err != nil {
@@ -108,7 +106,7 @@ func getProvider(env utils.EnvVariables, networkConfig types.NetworkConfig) prov
 
 }
 
-func getInternalNotification(env utils.EnvVariables) internal_notification.InternalNotification {
+func getInternalNotification(env types.EnvVariables) internal_notification.InternalNotification {
 	internalNotification, err := internal_notification.NewNatsInternalNotification(env.NatsUrl)
 	if err != nil {
 		log.Fatalf("[init] could not connect to the nats service: %s", err.Error())
