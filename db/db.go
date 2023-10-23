@@ -12,7 +12,7 @@ type DBClientSettings struct {
 	AutoMigrateModels []interface{}
 }
 
-func GetDBClient(s DBClientSettings) (*gorm.DB, error) {
+func GetPostgresClient(s DBClientSettings) (*gorm.DB, error) {
 	c, err := gorm.Open(postgres.Open(s.DBUrl), &gorm.Config{})
 	if err != nil {
 		return nil, err
@@ -26,6 +26,6 @@ func GetDBClient(s DBClientSettings) (*gorm.DB, error) {
 	return c, nil
 }
 
-func CreateDBUrl(url string, port int64, name string, user string, password string) string {
+func CreatePostgresDBUrl(url string, port int64, name string, user string, password string) string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s", user, password, url, port, name)
 }

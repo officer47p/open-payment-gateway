@@ -13,7 +13,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type envVariables struct {
+type EnvVariables struct {
 	DBUrl       string
 	DBPort      int64
 	DBName      string
@@ -24,7 +24,7 @@ type envVariables struct {
 	Environment string // This can be prod or dev
 }
 
-func (e *envVariables) getOnlyIfExists(n string) string {
+func (e *EnvVariables) getOnlyIfExists(n string) string {
 	v := os.Getenv(n)
 	if v == "" {
 		log.Fatalf("key %s does not exist in the environment variables", n)
@@ -33,8 +33,8 @@ func (e *envVariables) getOnlyIfExists(n string) string {
 	return v
 }
 
-func LoadEnvVariableFile(path string) (envVariables, error) {
-	env := envVariables{}
+func LoadEnvVariableFile(path string) (EnvVariables, error) {
+	env := EnvVariables{}
 
 	err := godotenv.Load(path)
 	if err != nil {

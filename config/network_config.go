@@ -8,11 +8,11 @@ import (
 	"os"
 )
 
-func LoadNetworkConfig(path string) (*types.NetworkConfig, error) {
+func LoadNetworkConfig(path string) (types.NetworkConfig, error) {
 	fileContent, err := os.Open(path)
 
 	if err != nil {
-		return nil, err
+		return types.NetworkConfig{}, err
 	}
 
 	defer fileContent.Close()
@@ -20,7 +20,7 @@ func LoadNetworkConfig(path string) (*types.NetworkConfig, error) {
 	byteResult, err := io.ReadAll(fileContent)
 
 	if err != nil {
-		return nil, err
+		return types.NetworkConfig{}, err
 	}
 
 	var networkConfig types.NetworkConfig
@@ -28,5 +28,5 @@ func LoadNetworkConfig(path string) (*types.NetworkConfig, error) {
 	json.Unmarshal(byteResult, &networkConfig)
 	fmt.Printf("network: %+v,\ncontracts: %+v\n", networkConfig.Network, networkConfig.Contracts)
 
-	return &networkConfig, nil
+	return networkConfig, nil
 }

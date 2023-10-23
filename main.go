@@ -11,51 +11,22 @@ import (
 	"open-payment-gateway/utils"
 	"sync"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 func main() {
-
-	networkConfig, err := config.LoadNetworkConfig("config/network-config.json")
-	if err != nil {
-		log.Fatalf("[init] error loading network config file: %s", err.Error())
-
-	}
-	log.Println("[init] network config is loaded")
-
-	// Loading environment variables
-	env, err := utils.LoadEnvVariableFile(".env")
-	if err != nil {
-		log.Fatalf("[init] error loading .env file: %s", err.Error())
-	}
-	log.Println("[init] environment variables are loaded")
-
-	// Database connection
-	dbClient, err := db.GetDBClient(db.DBClientSettings{
-		DBUrl:             db.CreateDBUrl(env.DBUrl, env.DBPort, env.DBName, env.DBUser, env.DBPassword),
-		AutoMigrateModels: []any{&types.Block{}, &types.Transaction{}, &types.Address{}},
-	})
-	if err != nil {
-		log.Fatalf("[init] could not connect to the Postgres database: %s", err.Error())
-	}
-	log.Print("[init] connected to the database")
-
-	// Provider
-	provider, err := providers.NewEvmProvider(env.ProviderUrl, networkConfig.Network)
-	if err != nil {
-		log.Fatalf("[init] could not connect to the provider: %s", err.Error())
-	}
-	log.Print("[init] provider Initiated")
+	networkConfig := loadNetworkConfig()
+	env := loadEnvVariables()
+	dbClient := getDBClient(env)
+	provider := getProvider(env, networkConfig)
 
 	// Database Stores
 	addressStore := db.NewAddressStore(dbClient)
 	blockStore := db.NewBlockStore(dbClient)
 	transactionStore := db.NewTransactionStore(dbClient)
 	// Internal Service Communication
-	internalNotification, err := internal_notification.NewNatsInternalNotification(env.NatsUrl)
-	if err != nil {
-		log.Fatalf("[init] could not connect to the nats service: %s", err.Error())
-	}
-	log.Print("[init] connected to the nats service")
+	internalNotification := getInternalNotification(env)
 
 	// Listener control channels
 	quitch := make(chan struct{})
@@ -89,4 +60,59 @@ func main() {
 	// evmListener.Stop()
 	// fmt.Println("loopExitedGracefully")
 	wg.Wait()
+}
+
+func loadNetworkConfig() types.NetworkConfig {
+	networkConfig, err := config.LoadNetworkConfig("config/network-config.json")
+	if err != nil {
+		log.Fatalf("[init] error loading network config file: %s", err.Error())
+
+	}
+	log.Println("[init] network config is loaded")
+	return networkConfig
+
+}
+
+func loadEnvVariables() utils.EnvVariables {
+	// Loading environment variables
+	env, err := utils.LoadEnvVariableFile(".env")
+	if err != nil {
+		log.Fatalf("[init] error loading .env file: %s", err.Error())
+	}
+	log.Println("[init] environment variables are loaded")
+	return env
+}
+
+func getDBClient(env utils.EnvVariables) *gorm.DB {
+	// Database connection
+	dbClient, err := db.GetPostgresClient(db.DBClientSettings{
+		DBUrl:             db.CreatePostgresDBUrl(env.DBUrl, env.DBPort, env.DBName, env.DBUser, env.DBPassword),
+		AutoMigrateModels: []any{&types.Block{}, &types.Transaction{}, &types.Address{}},
+	})
+	if err != nil {
+		log.Fatalf("[init] could not connect to the Postgres database: %s", err.Error())
+	}
+	log.Print("[init] connected to the database")
+	return dbClient
+
+}
+
+func getProvider(env utils.EnvVariables, networkConfig types.NetworkConfig) providers.EvmProvider {
+	// Provider
+	provider, err := providers.NewEvmProvider(env.ProviderUrl, networkConfig.Network)
+	if err != nil {
+		log.Fatalf("[init] could not connect to the provider: %s", err.Error())
+	}
+	log.Print("[init] provider Initiated")
+	return provider
+
+}
+
+func getInternalNotification(env utils.EnvVariables) internal_notification.InternalNotification {
+	internalNotification, err := internal_notification.NewNatsInternalNotification(env.NatsUrl)
+	if err != nil {
+		log.Fatalf("[init] could not connect to the nats service: %s", err.Error())
+	}
+	log.Print("[init] connected to the nats service")
+	return internalNotification
 }
