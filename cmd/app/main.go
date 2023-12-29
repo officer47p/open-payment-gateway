@@ -31,7 +31,7 @@ func main() {
 	wg := &sync.WaitGroup{}
 	defer close(quitch)
 
-	// Creating network transaction listener
+	// Creating network transaction app
 	evmListener := listeners.NewEvmListener(
 		&listeners.EvmListenerConfig{
 			Quitch: quitch,
@@ -51,7 +51,7 @@ func main() {
 	)
 
 	wg.Add(1)
-	// Starting the listener
+	// Starting the app
 	go evmListener.Start()
 
 	// time.Sleep(time.Millisecond * 1)
