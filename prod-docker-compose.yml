@@ -1,0 +1,21 @@
+version: '3.5'
+
+services:
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./container_data/redis:/root/redis
+
+# Use root/example as user/password credentials
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - ./container_data/mongodb:/data/db
+
