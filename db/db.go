@@ -7,6 +7,10 @@ import (
 	"gorm.io/gorm"
 )
 
+type DBConnection interface{}
+
+type MongoDBConnection struct{}
+
 type DBClientSettings struct {
 	DBUrl             string
 	AutoMigrateModels []interface{}

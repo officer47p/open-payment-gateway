@@ -6,6 +6,7 @@ import (
 	"open-payment-gateway/db"
 	"open-payment-gateway/internal_notification"
 	"open-payment-gateway/providers"
+	"open-payment-gateway/stores"
 	"open-payment-gateway/types"
 	"open-payment-gateway/utils"
 	"strings"
@@ -117,7 +118,7 @@ func ProcessBlock(notification internal_notification.InternalNotification, addre
 	return nil
 }
 
-func ProcessTransaction(notification internal_notification.InternalNotification, addressStore db.AddressStore, transactionStore db.TransactionStore, tx types.Transaction) error {
+func ProcessTransaction(notification internal_notification.InternalNotification, addressStore db.AddressStore, transactionStore db.TransactionStore, tx stores.Transaction) error {
 	if tx.To == "" {
 		return nil
 	}
@@ -167,7 +168,7 @@ func ProcessTransaction(notification internal_notification.InternalNotification,
 	return nil
 }
 
-func GetTransactionType(addressStore db.AddressStore, tx types.Transaction) (string, error) {
+func GetTransactionType(addressStore db.AddressStore, tx stores.Transaction) (string, error) {
 	isDeposit, err := IsDepositTransaction(addressStore, tx.From, tx.To)
 	if err != nil {
 		return "", err

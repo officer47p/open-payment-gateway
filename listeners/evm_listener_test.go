@@ -1,6 +1,7 @@
 package listeners
 
 import (
+	"open-payment-gateway/stores"
 	"open-payment-gateway/types"
 	"strings"
 	"sync"
@@ -52,7 +53,7 @@ func (s *MockBlockStore) GetLatestProcessedBlockNumber() (int64, error) {
 type MockTransactionStore struct {
 }
 
-func (s MockTransactionStore) SaveTransaction(t *types.Transaction) error {
+func (s MockTransactionStore) SaveTransaction(t *stores.Transaction) error {
 	return nil
 }
 

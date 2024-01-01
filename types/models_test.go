@@ -1,8 +1,10 @@
 package types
 
 import (
+	"open-payment-gateway/stores"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
@@ -16,7 +18,7 @@ func TestDatabaseOperations(t *testing.T) {
 	// defer db.Close()
 
 	// Migrate the tables
-	err = db.AutoMigrate(&Block{}, &Transaction{}, &Address{})
+	err = db.AutoMigrate(&Block{}, &stores.Transaction{}, &Address{})
 	if err != nil {
 		t.Fatalf("Error migrating tables: %v", err)
 	}
@@ -37,7 +39,7 @@ func TestDatabaseOperations(t *testing.T) {
 	}
 
 	// Test inserting and querying a Transaction record
-	transaction := Transaction{
+	transaction := types.Transaction{
 		Broadcasted: true,
 		BlockNumber: 1,
 		BlockHash:   "BlockHash1",
@@ -51,7 +53,7 @@ func TestDatabaseOperations(t *testing.T) {
 	}
 	db.Create(&transaction)
 
-	var retrievedTransaction Transaction
+	var retrievedTransaction stores.Transaction
 	db.First(&retrievedTransaction, transaction.ID)
 	if retrievedTransaction.TxHash != transaction.TxHash || retrievedTransaction.TxType != transaction.TxType {
 		t.Errorf("Retrieved Transaction does not match the inserted Transaction")
