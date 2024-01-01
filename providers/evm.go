@@ -3,6 +3,7 @@ package providers
 import (
 	"context"
 	"math/big"
+	"open-payment-gateway/stores"
 	"open-payment-gateway/types"
 
 	ethereumTypes "github.com/ethereum/go-ethereum/core/types"
@@ -52,7 +53,7 @@ func (p ThirdPartyEvmProvider) GetBlockByNumber(n int64) (types.Block, error) {
 		return types.Block{}, err
 	}
 
-	var transactions []types.Transaction
+	var transactions []stores.Transaction
 	for _, t := range block.Transactions() {
 		transactions = append(transactions, parseTransaction(t, block, p.network))
 	}
@@ -66,7 +67,7 @@ func (p ThirdPartyEvmProvider) GetBlockByNumber(n int64) (types.Block, error) {
 	}, nil
 }
 
-func parseTransaction(tx *ethereumTypes.Transaction, block *ethereumTypes.Block, network types.Network) types.Transaction {
+func parseTransaction(tx *ethereumTypes.Transaction, block *ethereumTypes.Block, network types.Network) stores.Transaction {
 	blockNumber := block.Number().Int64()
 	blockHash := block.Hash().String()
 	txHash := tx.Hash().String()
@@ -80,7 +81,7 @@ func parseTransaction(tx *ethereumTypes.Transaction, block *ethereumTypes.Block,
 	}
 	value := tx.Value().String()
 
-	return types.Transaction{
+	return stores.Transaction{
 		Broadcasted: false,
 		Network:     network.Name,
 		Currency:    network.Currency,

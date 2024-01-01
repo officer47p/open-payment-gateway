@@ -7,6 +7,7 @@ import (
 	"open-payment-gateway/internal_notification"
 	"open-payment-gateway/listeners"
 	"open-payment-gateway/providers"
+	"open-payment-gateway/stores"
 	"open-payment-gateway/types"
 	"open-payment-gateway/utils"
 	"sync"
@@ -85,7 +86,7 @@ func getDBClient(env types.EnvVariables) *gorm.DB {
 	// Database connection
 	dbClient, err := db.GetPostgresClient(db.DBClientSettings{
 		DBUrl:             db.CreatePostgresDBUrl(env.DBUrl, env.DBPort, env.DBName, env.DBUser, env.DBPassword),
-		AutoMigrateModels: []any{&types.Block{}, &types.Transaction{}, &types.Address{}},
+		AutoMigrateModels: []any{&types.Block{}, &stores.Transaction{}, &types.Address{}},
 	})
 	if err != nil {
 		log.Fatalf("[init] could not connect to the Postgres database: %s", err.Error())
