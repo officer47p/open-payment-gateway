@@ -2,3 +2,4 @@
 *.db
 /bin
 /.idea/dataSources.xml
+/container_data

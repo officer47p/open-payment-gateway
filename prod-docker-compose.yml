@@ -1,0 +1,24 @@
+version: '3.5'
+
+services:
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./container_data/redis:/root/redis
+
+  postgres:
+    container_name: postgres_container
+    image: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGDATA: /data/postgres
+    volumes:
+      - ./container_data/postgres:/data/postgres
+    ports:
+      - "5432:5432"
+    restart: always
+#    restart: unless-stopped
