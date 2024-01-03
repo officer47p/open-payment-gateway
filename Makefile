@@ -1,8 +1,8 @@
 build: 
-	@go build -o ./bin/listener .
+	@go build -o ./bin/app .
 
 dev: build
-	@./bin/listener
+	@./bin/app
 
 test:
-	@go test -cover ./...
+	@go test -cover -count=1 ./...
