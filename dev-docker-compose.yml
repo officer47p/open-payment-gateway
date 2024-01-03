@@ -10,12 +10,19 @@ services:
       - ./container_data/redis:/root/redis
 
 # Use root/example as user/password credentials
-  mongo:
-    image: mongo
-    restart: always
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
-    volumes:
-      - ./container_data/mongodb:/data/db
+  postgres:
+      image: postgres
+      environment:
+        POSTGRES_USER: ${POSTGRES_USER:-postgres}
+        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+        PGDATA: /data/postgres
+      volumes:
+        - ~/docker-volumes/postgres:/data/postgres
+      ports:
+        - "5432:5432"
+      restart: unless-stopped
 
+
+networks:
+  default:
+    driver: bridge
