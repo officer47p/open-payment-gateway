@@ -1,0 +1,19 @@
+{
+  "network": {
+    "name": "ethereum",
+    "currency": "ETH",
+    "chainID": 1,
+    "decimals": 18,
+    "startingBlockNumber": 9797390
+  },
+  "contracts": [
+    {
+      "name": "Tether",
+      "currency": "USDT",
+      "decimals": 18,
+      "contractAddress": "0x4723956743657482936587326",
+      "standard": "ERC20",
+      "startingBlockNumber": 9797380
+    }
+  ]
+}

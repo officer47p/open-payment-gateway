@@ -1,5 +1,5 @@
-.env*
+.env
 *.db
 /bin
 /.idea/dataSources.xml
-/container_data
+.container_data

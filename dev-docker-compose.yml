@@ -1,13 +1,13 @@
 version: '3.5'
 
 services:
-  redis:
-    image: redis:latest
-    restart: always
-    ports:
-      - "6379:6379"
-    volumes:
-      - ./container_data/redis:/root/redis
+  # redis:
+  #   image: redis:latest
+  #   restart: always
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - ./container_data/redis:/root/redis
 
 # Use root/example as user/password credentials
   postgres:
@@ -17,7 +17,7 @@ services:
         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
         PGDATA: /data/postgres
       volumes:
-        - ~/docker-volumes/postgres:/data/postgres
+        - ./.container_data/postgres:/data/postgres
       ports:
         - "5432:5432"
       restart: unless-stopped
